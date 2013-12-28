@@ -1,6 +1,7 @@
 /* Close a stream, with nicer error checking than fclose's.
 
-   Copyright (C) 1998-2002, 2004, 2006-2013 Free Software Foundation, Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2006, 2007, 2008 Free
+   Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -55,22 +56,22 @@
 int
 close_stream (FILE *stream)
 {
-  const bool some_pending = (__fpending (stream) != 0);
-  const bool prev_fail = (ferror (stream) != 0);
-  const bool fclose_fail = (fclose (stream) != 0);
+  bool some_pending = (__fpending (stream) != 0);
+  bool prev_fail = (ferror (stream) != 0);
+  bool fclose_fail = (fclose (stream) != 0);
 
   /* Return an error indication if there was a previous failure or if
      fclose failed, with one exception: ignore an fclose failure if
      there was no previous error, no data remains to be flushed, and
      fclose failed with EBADF.  That can happen when a program like cp
-     is invoked like this 'cp a b >&-' (i.e., with standard output
+     is invoked like this `cp a b >&-' (i.e., with standard output
      closed) and doesn't generate any output (hence no previous error
      and nothing to be flushed).  */
 
   if (prev_fail || (fclose_fail && (some_pending || errno != EBADF)))
     {
       if (! fclose_fail)
-        errno = 0;
+	errno = 0;
       return EOF;
     }
 

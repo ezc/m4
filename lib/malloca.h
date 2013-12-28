@@ -1,5 +1,5 @@
 /* Safe automatic memory allocation.
-   Copyright (C) 2003-2007, 2009-2013 Free Software Foundation, Inc.
+   Copyright (C) 2003-2007 Free Software Foundation, Inc.
    Written by Bruno Haible <bruno@clisp.org>, 2003.
 
    This program is free software; you can redistribute it and/or modify
@@ -13,7 +13,8 @@
    GNU General Public License for more details.
 
    You should have received a copy of the GNU General Public License
-   along with this program; if not, see <http://www.gnu.org/licenses/>.  */
+   along with this program; if not, write to the Free Software Foundation,
+   Inc., 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301, USA.  */
 
 #ifndef _MALLOCA_H
 #define _MALLOCA_H
@@ -42,7 +43,7 @@ extern "C" {
    and a page size can be as small as 4096 bytes.  So we cannot safely
    allocate anything larger than 4096 bytes.  Also care for the possibility
    of a few compiler-allocated temporary stack slots.
-   This must be a macro, not a function.  */
+   This must be a macro, not an inline function.  */
 # define safe_alloca(N) ((N) < 4032 ? alloca (N) : NULL)
 #else
 # define safe_alloca(N) ((void) (N), NULL)
@@ -53,7 +54,7 @@ extern "C" {
    the function returns.  Upon failure, it returns NULL.  */
 #if HAVE_ALLOCA
 # define malloca(N) \
-  ((N) < 4032 - sa_increment                                        \
+  ((N) < 4032 - sa_increment					    \
    ? (void *) ((char *) alloca ((N) + sa_increment) + sa_increment) \
    : mmalloca (N))
 #else
@@ -92,7 +93,7 @@ extern void * nmalloca (size_t n, size_t s);
 /* ------------------- Auxiliary, non-public definitions ------------------- */
 
 /* Determine the alignment of a type at compile time.  */
-#if defined __GNUC__ || defined __IBM__ALIGNOF__
+#if defined __GNUC__
 # define sa_alignof __alignof__
 #elif defined __cplusplus
   template <class type> struct sa_alignof_helper { char __slot1; type __slot2; };
@@ -121,10 +122,10 @@ enum
   sa_alignment_longdouble = sa_alignof (long double),
   sa_alignment_max = ((sa_alignment_long - 1) | (sa_alignment_double - 1)
 #if HAVE_LONG_LONG_INT
-                      | (sa_alignment_longlong - 1)
+		      | (sa_alignment_longlong - 1)
 #endif
-                      | (sa_alignment_longdouble - 1)
-                     ) + 1,
+		      | (sa_alignment_longdouble - 1)
+		     ) + 1,
 /* The increment that guarantees room for a magic word must be >= sizeof (int)
    and a multiple of sa_alignment_max.  */
   sa_increment = ((sizeof (int) + sa_alignment_max - 1) / sa_alignment_max) * sa_alignment_max

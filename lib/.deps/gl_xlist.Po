@@ -1,0 +1,18 @@
+gl_xlist.o: gl_xlist.c config.h gl_xlist.h gl_list.h \
+  /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/5.0/include/stdbool.h \
+  /Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/5.0/include/stddef.h \
+  xalloc.h xalloc-oversized.h
+
+config.h:
+
+gl_xlist.h:
+
+gl_list.h:
+
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/5.0/include/stdbool.h:
+
+/Applications/Xcode.app/Contents/Developer/Toolchains/XcodeDefault.xctoolchain/usr/bin/../lib/clang/5.0/include/stddef.h:
+
+xalloc.h:
+
+xalloc-oversized.h:

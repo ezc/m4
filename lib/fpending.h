@@ -1,7 +1,6 @@
 /* Declare __fpending.
 
-   Copyright (C) 2000, 2003, 2005-2006, 2009-2013 Free Software Foundation,
-   Inc.
+   Copyright (C) 2000, 2003, 2005, 2006 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -20,10 +19,15 @@
 
 #include <stddef.h>
 #include <stdio.h>
-#if HAVE_STDIO_EXT_H
-# include <stdio_ext.h>
+
+#ifndef HAVE_DECL___FPENDING
+"this configure-time declaration test was not run"
 #endif
 
-#ifndef __fpending
+#if HAVE_DECL___FPENDING
+# if HAVE_STDIO_EXT_H
+#  include <stdio_ext.h>
+# endif
+#else
 size_t __fpending (FILE *);
 #endif

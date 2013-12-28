@@ -1,5 +1,5 @@
 /* Test of posix_spawn() function.
-   Copyright (C) 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2008, 2009 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,28 +19,6 @@
 #include <config.h>
 
 #include <spawn.h>
-
-#include "signature.h"
-SIGNATURE_CHECK (posix_spawnp, int, (pid_t *, char const *,
-                                     posix_spawn_file_actions_t const *,
-                                     posix_spawnattr_t const *,
-                                     char *const[], char *const[]));
-SIGNATURE_CHECK (posix_spawnattr_init, int, (posix_spawnattr_t *));
-SIGNATURE_CHECK (posix_spawnattr_destroy, int, (posix_spawnattr_t *));
-SIGNATURE_CHECK (posix_spawnattr_setsigmask, int, (posix_spawnattr_t *,
-                                                   sigset_t const *));
-SIGNATURE_CHECK (posix_spawnattr_setflags, int, (posix_spawnattr_t *, short));
-SIGNATURE_CHECK (posix_spawn_file_actions_init, int,
-                 (posix_spawn_file_actions_t *));
-SIGNATURE_CHECK (posix_spawn_file_actions_destroy, int,
-                 (posix_spawn_file_actions_t *));
-SIGNATURE_CHECK (posix_spawn_file_actions_addclose, int,
-                 (posix_spawn_file_actions_t *, int));
-SIGNATURE_CHECK (posix_spawn_file_actions_addopen, int,
-                 (posix_spawn_file_actions_t *, int, char const *, int,
-                  mode_t));
-SIGNATURE_CHECK (posix_spawn_file_actions_adddup2, int,
-                 (posix_spawn_file_actions_t *, int, int));
 
 #include <errno.h>
 #include <fcntl.h>
@@ -75,7 +53,7 @@ fd_safer (int fd)
 int
 main ()
 {
-  char *argv[3] = { (char *) "/bin/sh", (char *) CHILD_PROGRAM_FILENAME, NULL };
+  char *argv[3] = { "/bin/sh", CHILD_PROGRAM_FILENAME, NULL };
   int ifd[2];
   sigset_t blocked_signals;
   sigset_t fatal_signal_set;
@@ -118,9 +96,9 @@ main ()
           || (err = posix_spawnp (&child, "/bin/sh", &actions, &attrs, argv, environ)) != 0))
     {
       if (actions_allocated)
-        posix_spawn_file_actions_destroy (&actions);
+	posix_spawn_file_actions_destroy (&actions);
       if (attrs_allocated)
-        posix_spawnattr_destroy (&attrs);
+	posix_spawnattr_destroy (&attrs);
       sigprocmask (SIG_UNBLOCK, &fatal_signal_set, NULL);
       errno = err;
       perror ("subprocess failed");

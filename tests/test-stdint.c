@@ -1,5 +1,5 @@
 /* Test of <stdint.h> substitute.
-   Copyright (C) 2006-2013 Free Software Foundation, Inc.
+   Copyright (C) 2006-2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,6 +21,7 @@
 /* Whether to enable pedantic checks. */
 #define DO_PEDANTIC 0
 
+#define __STDC_LIMIT_MACROS 1 /* to make it work also in C++ mode */
 #include <stdint.h>
 
 #include "verify.h"
@@ -353,7 +354,7 @@ verify_same_types (UINTMAX_C (17), (uintmax_t)0 + 0);
 
 
 int
-main (void)
+main ()
 {
   return 0;
 }

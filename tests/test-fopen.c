@@ -1,5 +1,5 @@
 /* Test of opening a file stream.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -19,16 +19,27 @@
 #include <config.h>
 
 #include <stdio.h>
+#include <stdlib.h>
 
-#include "signature.h"
-SIGNATURE_CHECK (fopen, FILE *, (char const *, char const *));
-
-#define BASE "test-fopen.t"
-
-#include "test-fopen.h"
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
 
 int
-main (void)
+main ()
 {
-  return test_fopen ();
+  ASSERT (fopen ("nonexist.ent/", "w") == NULL);
+  ASSERT (fopen ("/dev/null/", "r") == NULL);
+
+  ASSERT (fopen ("/dev/null", "r") != NULL);
+
+  return 0;
 }

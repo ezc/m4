@@ -1,7 +1,7 @@
 /* Close standard output and standard error, exiting with a diagnostic on error.
 
-   Copyright (C) 1998-2002, 2004, 2006, 2008-2013 Free Software Foundation,
-   Inc.
+   Copyright (C) 1998, 1999, 2000, 2001, 2002, 2004, 2006, 2008 Free
+   Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -100,7 +100,7 @@ close_stdout_set_ignore_EPIPE (bool ignore)
    can bypass the removal of these files.
 
    It's important to detect such failures and exit nonzero because many
-   tools (most notably 'make' and other build-management systems) depend
+   tools (most notably `make' and other build-management systems) depend
    on being able to detect failure in other tools via their exit status.  */
 
 void
@@ -111,10 +111,10 @@ close_stdout (void)
     {
       char const *write_error = _("write error");
       if (file_name)
-        error (0, errno, "%s: %s", quotearg_colon (file_name),
-               write_error);
+	error (0, errno, "%s: %s", quotearg_colon (file_name),
+	       write_error);
       else
-        error (0, errno, "%s", write_error);
+	error (0, errno, "%s", write_error);
 
       _exit (exit_failure);
     }

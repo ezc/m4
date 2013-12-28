@@ -1,5 +1,5 @@
 /* Test of signbit() substitute.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007, 2008, 2009 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -20,21 +20,48 @@
 
 #include <math.h>
 
-/* signbit must be a macro.  */
-#ifndef signbit
-# error missing declaration
-#endif
-
 #include <float.h>
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "minus-zero.h"
-#include "infinity.h"
-#include "macros.h"
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
 
 float zerof = 0.0f;
 double zerod = 0.0;
 long double zerol = 0.0L;
+
+/* HP cc on HP-UX 10.20 has a bug with the constant expression -0.0f.
+   So we use -zerof instead.  */
+
+/* HP cc on HP-UX 10.20 has a bug with the constant expression -0.0.
+   So we use -zerod instead.  */
+
+/* On HP-UX 10.20, negating 0.0L does not yield -0.0L.
+   So we use minus_zerol instead.
+   IRIX cc can't put -0.0L into .data, but can compute at runtime.
+   Note that the expression -LDBL_MIN * LDBL_MIN does not work on other
+   platforms, such as when cross-compiling to PowerPC on MacOS X 10.5.  */
+#if defined __hpux || defined __sgi
+static long double
+compute_minus_zerol (void)
+{
+  return -LDBL_MIN * LDBL_MIN;
+}
+# define minus_zerol compute_minus_zerol ()
+#else
+long double minus_zerol = -0.0L;
+#endif
 
 static void
 test_signbitf ()
@@ -48,13 +75,13 @@ test_signbitf ()
   ASSERT (signbit (-2.718e-30f));
   /* Zeros.  */
   ASSERT (!signbit (0.0f));
-  if (1.0f / minus_zerof < 0)
-    ASSERT (signbit (minus_zerof));
+  if (1.0f / -zerof < 0)
+    ASSERT (signbit (-zerof));
   else
-    ASSERT (!signbit (minus_zerof));
+    ASSERT (!signbit (-zerof));
   /* Infinite values.  */
-  ASSERT (!signbit (Infinityf ()));
-  ASSERT (signbit (- Infinityf ()));
+  ASSERT (!signbit (1.0f / 0.0f));
+  ASSERT (signbit (-1.0f / 0.0f));
   /* Quiet NaN.  */
   (void) signbit (zerof / zerof);
 #if defined FLT_EXPBIT0_WORD && defined FLT_EXPBIT0_BIT
@@ -93,13 +120,13 @@ test_signbitd ()
   ASSERT (signbit (-2.718e-30));
   /* Zeros.  */
   ASSERT (!signbit (0.0));
-  if (1.0 / minus_zerod < 0)
-    ASSERT (signbit (minus_zerod));
+  if (1.0 / -zerod < 0)
+    ASSERT (signbit (-zerod));
   else
-    ASSERT (!signbit (minus_zerod));
+    ASSERT (!signbit (-zerod));
   /* Infinite values.  */
-  ASSERT (!signbit (Infinityd ()));
-  ASSERT (signbit (- Infinityd ()));
+  ASSERT (!signbit (1.0 / 0.0));
+  ASSERT (signbit (-1.0 / 0.0));
   /* Quiet NaN.  */
   (void) signbit (zerod / zerod);
 #if defined DBL_EXPBIT0_WORD && defined DBL_EXPBIT0_BIT
@@ -141,8 +168,8 @@ test_signbitl ()
   else
     ASSERT (!signbit (minus_zerol));
   /* Infinite values.  */
-  ASSERT (!signbit (Infinityl ()));
-  ASSERT (signbit (- Infinityl ()));
+  ASSERT (!signbit (1.0L / 0.0L));
+  ASSERT (signbit (-1.0L / 0.0L));
   /* Quiet NaN.  */
   (void) signbit (zerol / zerol);
 #if defined LDBL_EXPBIT0_WORD && defined LDBL_EXPBIT0_BIT

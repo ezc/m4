@@ -1,5 +1,5 @@
 /* Test of xvasprintf() and xasprintf() functions.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -21,11 +21,23 @@
 #include "xvasprintf.h"
 
 #include <stdarg.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
 #include "progname.h"
-#include "macros.h"
+
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
 
 static char *
 my_xasprintf (const char *format, ...)
@@ -40,87 +52,35 @@ my_xasprintf (const char *format, ...)
 }
 
 static void
-test_xvasprintf (void)
+test_xvasprintf ()
 {
   int repeat;
-  char *result;
 
   for (repeat = 0; repeat <= 8; repeat++)
     {
-      result = my_xasprintf ("%d", 12345);
+      char *result = my_xasprintf ("%d", 12345);
       ASSERT (result != NULL);
       ASSERT (strcmp (result, "12345") == 0);
       free (result);
     }
-
-  {
-    /* Silence gcc warning about zero-length format string.  */
-    const char *empty = "";
-    result = my_xasprintf (empty);
-    ASSERT (result != NULL);
-    ASSERT (strcmp (result, "") == 0);
-    free (result);
-  }
-
-  result = my_xasprintf ("%s", "foo");
-  ASSERT (result != NULL);
-  ASSERT (strcmp (result, "foo") == 0);
-  free (result);
-
-  result = my_xasprintf ("%s%s", "foo", "bar");
-  ASSERT (result != NULL);
-  ASSERT (strcmp (result, "foobar") == 0);
-  free (result);
-
-  result = my_xasprintf ("%s%sbaz", "foo", "bar");
-  ASSERT (result != NULL);
-  ASSERT (strcmp (result, "foobarbaz") == 0);
-  free (result);
 }
 
 static void
-test_xasprintf (void)
+test_xasprintf ()
 {
   int repeat;
-  char *result;
 
   for (repeat = 0; repeat <= 8; repeat++)
     {
-      result = xasprintf ("%d", 12345);
+      char *result = xasprintf ("%d", 12345);
       ASSERT (result != NULL);
       ASSERT (strcmp (result, "12345") == 0);
       free (result);
     }
-
-  {
-    /* Silence gcc warning about zero-length format string,
-       and about "format not a string literal and no format"
-       (whatever that means) .  */
-    const char *empty = "";
-    result = xasprintf (empty, empty);
-    ASSERT (result != NULL);
-    ASSERT (strcmp (result, "") == 0);
-    free (result);
-  }
-
-  result = xasprintf ("%s", "foo");
-  ASSERT (result != NULL);
-  ASSERT (strcmp (result, "foo") == 0);
-  free (result);
-
-  result = xasprintf ("%s%s", "foo", "bar");
-  ASSERT (result != NULL);
-  ASSERT (strcmp (result, "foobar") == 0);
-  free (result);
-
-  result = my_xasprintf ("%s%sbaz", "foo", "bar");
-  ASSERT (result != NULL);
-  ASSERT (strcmp (result, "foobarbaz") == 0);
-  free (result);
 }
 
 int
-main (int argc _GL_UNUSED, char *argv[])
+main (int argc, char *argv[])
 {
   set_program_name (argv[0]);
 

@@ -1,19 +1,21 @@
 /* Canonical list of all signal names.
-   Copyright (C) 1996-1999, 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 1996,97,98,99,2008 Free Software Foundation, Inc.
    This file is part of the GNU C Library.
 
-   This program is free software: you can redistribute it and/or modify
-   it under the terms of the GNU General Public License as published by
-   the Free Software Foundation; either version 3 of the License, or
-   (at your option) any later version.
+   The GNU C Library is free software; you can redistribute it and/or
+   modify it under the terms of the GNU General Public
+   License as published by the Free Software Foundation; either
+   version 3 of the License, or (at your option) any later version.
 
-   This program is distributed in the hope that it will be useful,
+   The GNU C Library is distributed in the hope that it will be useful,
    but WITHOUT ANY WARRANTY; without even the implied warranty of
-   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-   GNU General Public License for more details.
+   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+   Lesser General Public License for more details.
 
-   You should have received a copy of the GNU General Public License
-   along with this program.  If not, see <http://www.gnu.org/licenses/>.  */
+   You should have received a copy of the GNU General Public
+   License along with the GNU C Library; if not, write to the Free
+   Software Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA
+   02111-1307 USA.  */
 
 /* This file should be usable for any platform, since it just associates
    the SIG* macros with text names and descriptions.  The actual values
@@ -22,9 +24,6 @@
    this single common file for all platforms.  */
 
 /* This file is included multiple times.  */
-
-/* Duplicate values (such as SIGBUS==SIGSEGV on Haiku) favor the last
-   list entry.  */
 
 /* Standard signals  */
 #ifdef SIGHUP

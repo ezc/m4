@@ -1,5 +1,5 @@
 /* Emergency actions in case of a fatal signal.
-   Copyright (C) 2003-2004, 2006-2013 Free Software Foundation, Inc.
+   Copyright (C) 2003-2004, 2006-2008 Free Software Foundation, Inc.
    Written by Bruno Haible <bruno@clisp.org>, 2003.
 
    This program is free software: you can redistribute it and/or modify
@@ -71,7 +71,7 @@ static int fatal_signals[] =
 #ifdef SIGXFSZ
     SIGXFSZ,
 #endif
-    /* Native Windows signals.  */
+    /* Woe32 signals.  */
 #ifdef SIGBREAK
     SIGBREAK,
 #endif
@@ -91,13 +91,13 @@ init_fatal_signals (void)
       size_t i;
 
       for (i = 0; i < num_fatal_signals; i++)
-        {
-          struct sigaction action;
+	{
+	  struct sigaction action;
 
-          if (sigaction (fatal_signals[i], NULL, &action) >= 0
-              && get_handler (&action) == SIG_IGN)
-            fatal_signals[i] = -1;
-        }
+	  if (sigaction (fatal_signals[i], NULL, &action) >= 0
+	      && get_handler (&action) == SIG_IGN)
+	    fatal_signals[i] = -1;
+	}
 
       fatal_signals_initialized = true;
     }
@@ -131,18 +131,18 @@ static struct sigaction saved_sigactions[64];
 
 
 /* Uninstall the handlers.  */
-static void
-uninstall_handlers (void)
+static inline void
+uninstall_handlers ()
 {
   size_t i;
 
   for (i = 0; i < num_fatal_signals; i++)
     if (fatal_signals[i] >= 0)
       {
-        int sig = fatal_signals[i];
-        if (saved_sigactions[sig].sa_handler == SIG_IGN)
-          saved_sigactions[sig].sa_handler = SIG_DFL;
-        sigaction (sig, &saved_sigactions[sig], NULL);
+	int sig = fatal_signals[i];
+	if (saved_sigactions[sig].sa_handler == SIG_IGN)
+	  saved_sigactions[sig].sa_handler = SIG_DFL;
+	sigaction (sig, &saved_sigactions[sig], NULL);
       }
 }
 
@@ -157,7 +157,7 @@ fatal_signal_handler (int sig)
       action_t action;
       size_t n = actions_count;
       if (n == 0)
-        break;
+	break;
       n--;
       actions_count = n;
       action = actions[n].action;
@@ -176,8 +176,8 @@ fatal_signal_handler (int sig)
 
 
 /* Install the handlers.  */
-static void
-install_handlers (void)
+static inline void
+install_handlers ()
 {
   size_t i;
   struct sigaction action;
@@ -191,11 +191,11 @@ install_handlers (void)
   for (i = 0; i < num_fatal_signals; i++)
     if (fatal_signals[i] >= 0)
       {
-        int sig = fatal_signals[i];
+	int sig = fatal_signals[i];
 
-        if (!(sig < sizeof (saved_sigactions) / sizeof (saved_sigactions[0])))
-          abort ();
-        sigaction (sig, &action, &saved_sigactions[sig]);
+	if (!(sig < sizeof (saved_sigactions) / sizeof (saved_sigactions[0])))
+	  abort ();
+	sigaction (sig, &action, &saved_sigactions[sig]);
       }
 }
 
@@ -216,25 +216,25 @@ at_fatal_signal (action_t action)
   if (actions_count == actions_allocated)
     {
       /* Extend the actions array.  Note that we cannot use xrealloc(),
-         because then the cleanup() function could access an already
-         deallocated array.  */
+	 because then the cleanup() function could access an already
+	 deallocated array.  */
       actions_entry_t *old_actions = actions;
       size_t old_actions_allocated = actions_allocated;
       size_t new_actions_allocated = 2 * actions_allocated;
       actions_entry_t *new_actions =
-        XNMALLOC (new_actions_allocated, actions_entry_t);
+	XNMALLOC (new_actions_allocated, actions_entry_t);
       size_t k;
 
       /* Don't use memcpy() here, because memcpy takes non-volatile arguments
-         and is therefore not guaranteed to complete all memory stores before
-         the next statement.  */
+	 and is therefore not guaranteed to complete all memory stores before
+	 the next statement.  */
       for (k = 0; k < old_actions_allocated; k++)
-        new_actions[k] = old_actions[k];
+	new_actions[k] = old_actions[k];
       actions = new_actions;
       actions_allocated = new_actions_allocated;
       /* Now we can free the old actions array.  */
       if (old_actions != static_actions)
-        free (old_actions);
+	free (old_actions);
     }
   /* The two uses of 'volatile' in the types above (and ISO C 99 section
      5.1.2.3.(5)) ensure that we increment the actions_count only after
@@ -251,7 +251,7 @@ at_fatal_signal (action_t action)
 static sigset_t fatal_signal_set;
 
 static void
-init_fatal_signal_set (void)
+init_fatal_signal_set ()
 {
   static bool fatal_signal_set_initialized = false;
   if (!fatal_signal_set_initialized)
@@ -262,8 +262,8 @@ init_fatal_signal_set (void)
 
       sigemptyset (&fatal_signal_set);
       for (i = 0; i < num_fatal_signals; i++)
-        if (fatal_signals[i] >= 0)
-          sigaddset (&fatal_signal_set, fatal_signals[i]);
+	if (fatal_signals[i] >= 0)
+	  sigaddset (&fatal_signal_set, fatal_signals[i]);
 
       fatal_signal_set_initialized = true;
     }
@@ -271,7 +271,7 @@ init_fatal_signal_set (void)
 
 /* Temporarily delay the catchable fatal signals.  */
 void
-block_fatal_signals (void)
+block_fatal_signals ()
 {
   init_fatal_signal_set ();
   sigprocmask (SIG_BLOCK, &fatal_signal_set, NULL);
@@ -279,7 +279,7 @@ block_fatal_signals (void)
 
 /* Stop delaying the catchable fatal signals.  */
 void
-unblock_fatal_signals (void)
+unblock_fatal_signals ()
 {
   init_fatal_signal_set ();
   sigprocmask (SIG_UNBLOCK, &fatal_signal_set, NULL);

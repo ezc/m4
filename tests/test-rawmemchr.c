@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008-2013 Free Software Foundation, Inc.
+ * Copyright (C) 2008 Free Software Foundation
  * Written by Eric Blake and Bruno Haible
  *
  * This program is free software: you can redistribute it and/or modify
@@ -19,20 +19,27 @@
 
 #include <string.h>
 
-#include "signature.h"
-SIGNATURE_CHECK (rawmemchr, void *, (void const *, int));
-
+#include <stdio.h>
 #include <stdlib.h>
 
-#include "zerosize-ptr.h"
-#include "macros.h"
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+	{								     \
+	  fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+	  fflush (stderr);						     \
+	  abort ();							     \
+	}								     \
+    }									     \
+  while (0)
 
 /* Calculating void * + int is not portable, so this wrapper converts
    to char * to make the tests easier to write.  */
 #define RAWMEMCHR (char *) rawmemchr
 
 int
-main (void)
+main ()
 {
   size_t n = 0x100000;
   char *input = malloc (n + 1);
@@ -54,7 +61,6 @@ main (void)
 
   ASSERT (RAWMEMCHR (input + 1, 'a') == input + n - 1);
   ASSERT (RAWMEMCHR (input + 1, 'e') == input + n - 2);
-  ASSERT (RAWMEMCHR (input + 1, 0x789abc00 | 'e') == input + n - 2);
 
   ASSERT (RAWMEMCHR (input, '\0') == input + n);
 
@@ -70,20 +76,6 @@ main (void)
             ASSERT (RAWMEMCHR (input + i, j) == input + i + j);
           }
       }
-  }
-
-  /* Ensure that no unaligned oversized reads occur.  */
-  {
-    char *page_boundary = (char *) zerosize_ptr ();
-    size_t i;
-
-    if (!page_boundary)
-      page_boundary = input + 4096;
-    memset (page_boundary - 512, '1', 511);
-    page_boundary[-1] = '2';
-    for (i = 1; i <= 512; i++)
-      ASSERT (RAWMEMCHR (page_boundary - i, (i * 0x01010100) | '2')
-              == page_boundary - 1);
   }
 
   free (input);

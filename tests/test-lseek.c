@@ -1,5 +1,5 @@
 /* Test of lseek() function.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,14 +18,21 @@
 
 #include <config.h>
 
+#include <errno.h>
+#include <stdio.h>
 #include <unistd.h>
 
-#include "signature.h"
-SIGNATURE_CHECK (lseek, off_t, (int, off_t, int));
-
-#include <errno.h>
-
-#include "macros.h"
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
 
 /* ARGC must be 2; *ARGV[1] is '0' if stdin and stdout are files, '1'
    if they are pipes, and '2' if they are closed.  Check for proper
@@ -44,7 +51,7 @@ main (int argc, char **argv)
       errno = 0;
 #if ! defined __BEOS__
       /* POSIX says that the last lseek call, when failing, does not change
-         the current offset.  But BeOS sets it to 0.  */
+	 the current offset.  But BeOS sets it to 0.  */
       ASSERT (lseek (0, (off_t)0, SEEK_CUR) == 2);
 #endif
 #if 0 /* leads to SIGSYS on IRIX 6.5 */
@@ -58,7 +65,7 @@ main (int argc, char **argv)
       errno = 0;
 #if ! defined __BEOS__
       /* POSIX says that the last lseek call, when failing, does not change
-         the current offset.  But BeOS sets it to 0.  */
+	 the current offset.  But BeOS sets it to 0.  */
       ASSERT (lseek (1, (off_t)0, SEEK_CUR) == 2);
 #endif
 #if 0 /* leads to SIGSYS on IRIX 6.5 */
@@ -81,25 +88,12 @@ main (int argc, char **argv)
          invoking shell are not enough on HP-UX.  */
       close (0);
       close (1);
-
       errno = 0;
       ASSERT (lseek (0, (off_t)0, SEEK_CUR) == -1);
       ASSERT (errno == EBADF);
-
       errno = 0;
       ASSERT (lseek (1, (off_t)0, SEEK_CUR) == -1);
       ASSERT (errno == EBADF);
-
-      /* Test behaviour for invalid file descriptors.  */
-      errno = 0;
-      ASSERT (lseek (-1, (off_t)0, SEEK_CUR) == -1);
-      ASSERT (errno == EBADF);
-
-      close (99);
-      errno = 0;
-      ASSERT (lseek (99, (off_t)0, SEEK_CUR) == -1);
-      ASSERT (errno == EBADF);
-
       break;
 
     default:

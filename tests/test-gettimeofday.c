@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2005, 2007, 2009-2013 Free Software Foundation, Inc.
+ * Copyright (C) 2005, 2007 Free Software Foundation
  * Written by Jim Meyering.
  *
  * This program is free software: you can redistribute it and/or modify
@@ -18,18 +18,13 @@
 #include <config.h>
 
 #include <sys/time.h>
-
-#include "signature.h"
-SIGNATURE_CHECK (gettimeofday, int,
-                 (struct timeval *, GETTIMEOFDAY_TIMEZONE *));
-
 #include <time.h>
 
 #include <stdio.h>
 #include <string.h>
 
 int
-main (void)
+main (int argc, char *argv[])
 {
   time_t t = 0;
   struct tm *lt;
@@ -43,5 +38,8 @@ main (void)
       fprintf (stderr, "gettimeofday still clobbers the localtime buffer!\n");
       return 1;
     }
-  return 0;
+  else
+    {
+      return 0;
+    }
 }

@@ -1,11 +1,11 @@
-# Having a separate GNUmakefile lets me 'include' the dynamically
+# Having a separate GNUmakefile lets me `include' the dynamically
 # generated rules created via cfg.mk (package-local configuration)
 # as well as maint.mk (generic maintainer rules).
 # This makefile is used only if you run GNU Make.
 # It is necessary if you want to build targets usually of interest
 # only to the maintainer.
 
-# Copyright (C) 2001, 2003, 2006-2013 Free Software Foundation, Inc.
+# Copyright (C) 2001, 2003, 2006-2009 Free Software Foundation, Inc.
 
 # This program is free software: you can redistribute it and/or modify
 # it under the terms of the GNU General Public License as published by
@@ -20,10 +20,20 @@
 # You should have received a copy of the GNU General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+# Systems where /bin/sh is not the default shell need this.  The $(shell)
+# command below won't work with e.g. stock DOS/Windows shells.
+ifeq ($(wildcard /bin/s[h]),/bin/sh)
+SHELL = /bin/sh
+else
+# will be used only with the next shell-test line, then overwritten
+# by a configured-in value
+SHELL = sh
+endif
+
 # If the user runs GNU make but has not yet run ./configure,
 # give them a diagnostic.
-_gl-Makefile := $(wildcard [M]akefile)
-ifneq ($(_gl-Makefile),)
+_have-Makefile := $(shell test -f Makefile && echo yes)
+ifeq ($(_have-Makefile),yes)
 
 # Make tar archive easier to reproduce.
 export TAR_OPTIONS = --owner=0 --group=0 --numeric-owner
@@ -35,12 +45,11 @@ include Makefile
 
 # Some projects override e.g., _autoreconf here.
 -include $(srcdir)/cfg.mk
+include $(srcdir)/maint.mk
 
 # Allow cfg.mk to override these.
 _build-aux ?= build-aux
-_autoreconf ?= autoreconf -v
-
-include $(srcdir)/maint.mk
+_autoreconf ?= autoreconf
 
 # Ensure that $(VERSION) is up to date for dist-related targets, but not
 # for others: rerunning autoreconf and recompiling everything isn't cheap.
@@ -48,13 +57,11 @@ _have-git-version-gen := \
   $(shell test -f $(srcdir)/$(_build-aux)/git-version-gen && echo yes)
 ifeq ($(_have-git-version-gen)0,yes$(MAKELEVEL))
   _is-dist-target ?= $(filter-out %clean, \
-    $(filter maintainer-% dist% alpha beta stable,$(MAKECMDGOALS)))
+    $(filter maintainer-% dist% alpha beta major,$(MAKECMDGOALS)))
   _is-install-target ?= $(filter-out %check, $(filter install%,$(MAKECMDGOALS)))
   ifneq (,$(_is-dist-target)$(_is-install-target))
-    _curr-ver := $(shell cd $(srcdir)				\
-                   && $(_build-aux)/git-version-gen		\
-                         .tarball-version			\
-                         $(git-version-gen-tag-sed-script))
+    _curr-ver := $(shell cd $(srcdir) \
+                   && $(_build-aux)/git-version-gen .tarball-version)
     ifneq ($(_curr-ver),$(VERSION))
       ifeq ($(_curr-ver),UNKNOWN)
         $(info WARNING: unable to verify if $(VERSION) is the correct version)
@@ -71,8 +78,7 @@ ifeq ($(_have-git-version-gen)0,yes$(MAKELEVEL))
           $(info run '$(MAKE) _version' to fix it)
         else
           $(info INFO: running autoreconf for new version string: $(_curr-ver))
-GNUmakefile: _version
-	touch GNUmakefile
+          _dummy := $(shell $(MAKE) $(AM_MAKEFLAGS) _version)
         endif
       endif
     endif
@@ -82,7 +88,6 @@ endif
 .PHONY: _version
 _version:
 	cd $(srcdir) && rm -rf autom4te.cache .version && $(_autoreconf)
-	$(MAKE) $(AM_MAKEFLAGS) Makefile
 
 else
 
@@ -91,11 +96,6 @@ srcdir = .
 
 # The package can override .DEFAULT_GOAL to run actions like autoreconf.
 -include ./cfg.mk
-
-# Allow cfg.mk to override these.
-_build-aux ?= build-aux
-_autoreconf ?= autoreconf -v
-
 include ./maint.mk
 
 ifeq ($(.DEFAULT_GOAL),abort-due-to-no-makefile)
@@ -104,7 +104,7 @@ endif
 
 abort-due-to-no-makefile:
 	@echo There seems to be no Makefile in this directory.   1>&2
-	@echo "You must run ./configure before running 'make'." 1>&2
+	@echo "You must run ./configure before running \`make'." 1>&2
 	@exit 1
 
 endif

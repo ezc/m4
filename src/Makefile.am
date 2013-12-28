@@ -1,6 +1,6 @@
 ## Makefile.am - template for generating Makefile via Automake
 ##
-## Copyright (C) 2006-2013 Free Software Foundation, Inc.
+## Copyright (C) 2006, 2007, 2008 Free Software Foundation, Inc.
 ##
 ## This file is part of GNU M4.
 ##
@@ -21,9 +21,7 @@
 
 AUTOMAKE_OPTIONS = nostdinc
 AM_CPPFLAGS = -I$(top_srcdir)/lib -I../lib
-AM_CFLAGS = $(WARN_CFLAGS) $(WERROR_CFLAGS)
 bin_PROGRAMS = m4
-noinst_HEADERS = m4.h
-m4_SOURCES = m4.c builtin.c debug.c eval.c format.c freeze.c input.c \
+m4_SOURCES = m4.h m4.c builtin.c debug.c eval.c format.c freeze.c input.c \
 macro.c output.c path.c symtab.c
-m4_LDADD = ../lib/libm4.a $(LIBM4_LIBDEPS) $(LIBCSTACK) $(LIBTHREAD)
+m4_LDADD = ../lib/libm4.a $(LIBM4_LIBDEPS) $(POW_LIB) $(LIBCSTACK)

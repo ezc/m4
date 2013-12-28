@@ -1,5 +1,5 @@
-/* Copyright (C) 1991, 1993, 1996-1997, 1999-2000, 2003-2004, 2006, 2008-2013
-   Free Software Foundation, Inc.
+/* Copyright (C) 1991, 1993, 1996, 1997, 1999, 2000, 2003, 2004, 2006,
+   2008 Free Software Foundation, Inc.
 
    Based on strlen implementation by Torbjorn Granlund (tege@sics.se),
    with help from Dan Sahlin (dan@sics.se) and
@@ -43,7 +43,6 @@ memchr2 (void const *s, int c1_in, int c2_in, size_t n)
   typedef unsigned long int longword;
 
   const unsigned char *char_ptr;
-  void const *void_ptr;
   const longword *longword_ptr;
   longword repeated_one;
   longword repeated_c1;
@@ -58,18 +57,14 @@ memchr2 (void const *s, int c1_in, int c2_in, size_t n)
     return memchr (s, c1, n);
 
   /* Handle the first few bytes by reading one byte at a time.
-     Do this until VOID_PTR is aligned on a longword boundary.  */
-  for (void_ptr = s;
-       n > 0 && (uintptr_t) void_ptr % sizeof (longword) != 0;
-       --n)
-    {
-      char_ptr = void_ptr;
-      if (*char_ptr == c1 || *char_ptr == c2)
-        return (void *) void_ptr;
-      void_ptr = char_ptr + 1;
-    }
+     Do this until CHAR_PTR is aligned on a longword boundary.  */
+  for (char_ptr = (const unsigned char *) s;
+       n > 0 && (size_t) char_ptr % sizeof (longword) != 0;
+       --n, ++char_ptr)
+    if (*char_ptr == c1 || *char_ptr == c2)
+      return (void *) char_ptr;
 
-  longword_ptr = void_ptr;
+  longword_ptr = (const longword *) char_ptr;
 
   /* All these elucidatory comments refer to 4-byte longwords,
      but the theory applies equally well to any size longwords.  */
@@ -89,16 +84,16 @@ memchr2 (void const *s, int c1_in, int c2_in, size_t n)
       repeated_c1 |= repeated_c1 << 31 << 1;
       repeated_c2 |= repeated_c2 << 31 << 1;
       if (8 < sizeof (longword))
-        {
-          size_t i;
+	{
+	  size_t i;
 
-          for (i = 64; i < sizeof (longword) * 8; i *= 2)
-            {
-              repeated_one |= repeated_one << i;
-              repeated_c1 |= repeated_c1 << i;
-              repeated_c2 |= repeated_c2 << i;
-            }
-        }
+	  for (i = 64; i < sizeof (longword) * 8; i *= 2)
+	    {
+	      repeated_one |= repeated_one << i;
+	      repeated_c1 |= repeated_c1 << i;
+	      repeated_c2 |= repeated_c2 << i;
+	    }
+	}
     }
 
   /* Instead of the traditional loop which tests each byte, we will test a
@@ -130,7 +125,7 @@ memchr2 (void const *s, int c1_in, int c2_in, size_t n)
      significant bytes (positions j+1..3), but it does not matter since we
      already have a non-zero bit at position 8*j+7.
 
-     Similarly, we compute tmp2 =
+     Similary, we compute tmp2 =
        ((longword2 - repeated_one) & ~longword2) & (repeated_one << 7).
 
      The test whether any byte in longword1 or longword2 is zero is equivalent
@@ -143,9 +138,9 @@ memchr2 (void const *s, int c1_in, int c2_in, size_t n)
       longword longword2 = *longword_ptr ^ repeated_c2;
 
       if (((((longword1 - repeated_one) & ~longword1)
-            | ((longword2 - repeated_one) & ~longword2))
-           & (repeated_one << 7)) != 0)
-        break;
+	    | ((longword2 - repeated_one) & ~longword2))
+	   & (repeated_one << 7)) != 0)
+	break;
       longword_ptr++;
       n -= sizeof (longword);
     }
@@ -162,7 +157,7 @@ memchr2 (void const *s, int c1_in, int c2_in, size_t n)
   for (; n > 0; --n, ++char_ptr)
     {
       if (*char_ptr == c1 || *char_ptr == c2)
-        return (void *) char_ptr;
+	return (void *) char_ptr;
     }
 
   return NULL;

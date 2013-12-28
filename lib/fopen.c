@@ -1,5 +1,5 @@
 /* Open a stream to a file.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2009 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -16,26 +16,21 @@
 
 /* Written by Bruno Haible <bruno@clisp.org>, 2007.  */
 
-/* If the user's config.h happens to include <stdio.h>, let it include only
-   the system's <stdio.h> here, so that orig_fopen doesn't recurse to
-   rpl_fopen.  */
-#define __need_FILE
 #include <config.h>
 
 /* Get the original definition of fopen.  It might be defined as a macro.  */
+#define __need_FILE
 #include <stdio.h>
 #undef __need_FILE
 
-static FILE *
+static inline FILE *
 orig_fopen (const char *filename, const char *mode)
 {
   return fopen (filename, mode);
 }
 
 /* Specification.  */
-/* Write "stdio.h" here, not <stdio.h>, otherwise OSF/1 5.1 DTK cc eliminates
-   this include because of the preliminary #include <stdio.h> above.  */
-#include "stdio.h"
+#include <stdio.h>
 
 #include <errno.h>
 #include <fcntl.h>
@@ -73,35 +68,35 @@ rpl_fopen (const char *filename, const char *mode)
     size_t len = strlen (filename);
     if (len > 0 && filename[len - 1] == '/')
       {
-        int fd;
-        struct stat statbuf;
-        FILE *fp;
+	int fd;
+	struct stat statbuf;
+	FILE *fp;
 
-        if (mode[0] == 'w' || mode[0] == 'a')
-          {
-            errno = EISDIR;
-            return NULL;
-          }
+	if (mode[0] == 'w' || mode[0] == 'a')
+	  {
+	    errno = EISDIR;
+	    return NULL;
+	  }
 
-        fd = open (filename, O_RDONLY);
-        if (fd < 0)
-          return NULL;
+	fd = open (filename, O_RDONLY);
+	if (fd < 0)
+	  return NULL;
 
-        if (fstat (fd, &statbuf) >= 0 && !S_ISDIR (statbuf.st_mode))
-          {
-            close (fd);
-            errno = ENOTDIR;
-            return NULL;
-          }
+	if (fstat (fd, &statbuf) >= 0 && !S_ISDIR (statbuf.st_mode))
+	  {
+	    close (fd);
+	    errno = ENOTDIR;
+	    return NULL;
+	  }
 
-        fp = fdopen (fd, mode);
-        if (fp == NULL)
-          {
-            int saved_errno = errno;
-            close (fd);
-            errno = saved_errno;
-          }
-        return fp;
+	fp = fdopen (fd, mode);
+	if (fp == NULL)
+	  {
+	    int saved_errno = errno;
+	    close (fd);
+	    errno = saved_errno;
+	  }
+	return fp;
       }
   }
 # endif

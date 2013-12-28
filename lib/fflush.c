@@ -1,5 +1,5 @@
 /* fflush.c -- allow flushing input streams
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2009 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -25,10 +25,9 @@
 #include <unistd.h>
 
 #include "freading.h"
+#include "fpurge.h"
 
 #include "stdio-impl.h"
-
-#include "unused-parameter.h"
 
 #undef fflush
 
@@ -36,21 +35,21 @@
 #if defined _IO_ftrylockfile || __GNU_LIBRARY__ == 1 /* GNU libc, BeOS, Haiku, Linux libc5 */
 
 /* Clear the stream's ungetc buffer, preserving the value of ftello (fp).  */
-static void
+static inline void
 clear_ungetc_buffer_preserving_position (FILE *fp)
 {
   if (fp->_flags & _IO_IN_BACKUP)
     /* _IO_free_backup_area is a bit complicated.  Simply call fseek.  */
-    fseeko (fp, 0, SEEK_CUR);
+    fseek (fp, 0, SEEK_CUR);
 }
 
 #else
 
 /* Clear the stream's ungetc buffer.  May modify the value of ftello (fp).  */
-static void
+static inline void
 clear_ungetc_buffer (FILE *fp)
 {
-# if defined __sferror || defined __DragonFly__ /* FreeBSD, NetBSD, OpenBSD, DragonFly, Mac OS X, Cygwin */
+# if defined __sferror || defined __DragonFly__ /* FreeBSD, NetBSD, OpenBSD, DragonFly, MacOS X, Cygwin */
   if (HASUB (fp))
     {
       fp_->_p += fp_->_r;
@@ -62,20 +61,18 @@ clear_ungetc_buffer (FILE *fp)
       fp->_ungetc_count = 0;
       fp->_rcount = - fp->_rcount;
     }
-# elif defined _IOERR               /* Minix, AIX, HP-UX, IRIX, OSF/1, Solaris, OpenServer, mingw, NonStop Kernel */
+# elif defined _IOERR               /* AIX, HP-UX, IRIX, OSF/1, Solaris, OpenServer, mingw */
   /* Nothing to do.  */
 # else                              /* other implementations */
-  fseeko (fp, 0, SEEK_CUR);
+  fseek (fp, 0, SEEK_CUR);
 # endif
 }
 
 #endif
 
-#if ! (defined _IO_ftrylockfile || __GNU_LIBRARY__ == 1 /* GNU libc, BeOS, Haiku, Linux libc5 */)
+#if (defined __sferror || defined __DragonFly__) && defined __SNPT /* FreeBSD, NetBSD, OpenBSD, DragonFly, MacOS X, Cygwin */
 
-# if (defined __sferror || defined __DragonFly__) && defined __SNPT /* FreeBSD, NetBSD, OpenBSD, DragonFly, Mac OS X, Cygwin */
-
-static int
+static inline int
 disable_seek_optimization (FILE *fp)
 {
   int saved_flags = fp_->_flags & (__SOPT | __SNPT);
@@ -83,40 +80,22 @@ disable_seek_optimization (FILE *fp)
   return saved_flags;
 }
 
-static void
+static inline void
 restore_seek_optimization (FILE *fp, int saved_flags)
 {
   fp_->_flags = (fp_->_flags & ~(__SOPT | __SNPT)) | saved_flags;
 }
 
-# else
-
-static void
-update_fpos_cache (FILE *fp _GL_UNUSED_PARAMETER,
-                   off_t pos _GL_UNUSED_PARAMETER)
-{
-#  if defined __sferror || defined __DragonFly__ /* FreeBSD, NetBSD, OpenBSD, DragonFly, Mac OS X, Cygwin */
-#   if defined __CYGWIN__
-  /* fp_->_offset is typed as an integer.  */
-  fp_->_offset = pos;
-#   else
-  /* fp_->_offset is an fpos_t.  */
-  /* Use a union, since on NetBSD, the compilation flags determine
-     whether fpos_t is typedef'd to off_t or a struct containing a
-     single off_t member.  */
-  union
-    {
-      fpos_t f;
-      off_t o;
-    } u;
-  u.o = pos;
-  fp_->_offset = u.f;
-#   endif
-  fp_->_flags |= __SOFF;
-#  endif
-}
-# endif
 #endif
+
+static inline void
+update_fpos_cache (FILE *fp, off_t pos)
+{
+#if defined __sferror || defined __DragonFly__ /* FreeBSD, NetBSD, OpenBSD, DragonFly, MacOS X, Cygwin */
+  fp_->_offset = pos;
+  fp_->_flags |= __SOFF;
+#endif
+}
 
 /* Flush all pending data on STREAM according to POSIX rules.  Both
    output and seekable input streams are supported.  */
@@ -195,7 +174,7 @@ rpl_fflush (FILE *stream)
         return result;
     }
 
-# if (defined __sferror || defined __DragonFly__) && defined __SNPT /* FreeBSD, NetBSD, OpenBSD, DragonFly, Mac OS X, Cygwin */
+# if (defined __sferror || defined __DragonFly__) && defined __SNPT /* FreeBSD, NetBSD, OpenBSD, DragonFly, MacOS X, Cygwin */
 
     {
       /* Disable seek optimization for the next fseeko call.  This tells the

@@ -1,5 +1,5 @@
 /* Sequential list data type implemented by a hash table with a linked list.
-   Copyright (C) 2006, 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2006, 2008 Free Software Foundation, Inc.
    Written by Bruno Haible <bruno@clisp.org>, 2006.
 
    This program is free software: you can redistribute it and/or modify
@@ -23,6 +23,7 @@
 #include <stdint.h> /* for SIZE_MAX */
 #include <stdlib.h>
 
+#include "xalloc.h"
 #include "xsize.h"
 
 #ifndef uintptr_t
@@ -43,7 +44,7 @@
 #include "gl_anyhash_list2.h"
 
 /* Resize the hash table if needed, after list->count was incremented.  */
-static void
+static inline void
 hash_resize_after_add (gl_list_t list)
 {
   size_t count = list->count;
@@ -53,7 +54,7 @@ hash_resize_after_add (gl_list_t list)
 }
 
 /* Add a node to the hash table structure.  */
-static void
+static inline void
 add_to_bucket (gl_list_t list, gl_list_node_t node)
 {
   size_t bucket = node->h.hashcode % list->table_size;
@@ -61,11 +62,9 @@ add_to_bucket (gl_list_t list, gl_list_node_t node)
   node->h.hash_next = list->table[bucket];
   list->table[bucket] = &node->h;
 }
-/* Tell all compilers that the return value is 0.  */
-#define add_to_bucket(list,node)  ((add_to_bucket) (list, node), 0)
 
 /* Remove a node from the hash table structure.  */
-static void
+static inline void
 remove_from_bucket (gl_list_t list, gl_list_node_t node)
 {
   size_t bucket = node->h.hashcode % list->table_size;
@@ -74,14 +73,14 @@ remove_from_bucket (gl_list_t list, gl_list_node_t node)
   for (p = &list->table[bucket]; ; p = &(*p)->hash_next)
     {
       if (*p == &node->h)
-        {
-          *p = node->h.hash_next;
-          break;
-        }
+	{
+	  *p = node->h.hash_next;
+	  break;
+	}
       if (*p == NULL)
-        /* node is not in the right bucket.  Did the hash codes
-           change inadvertently?  */
-        abort ();
+	/* node is not in the right bucket.  Did the hash codes
+	   change inadvertently?  */
+	abort ();
     }
 }
 
@@ -91,22 +90,22 @@ remove_from_bucket (gl_list_t list, gl_list_node_t node)
 
 const struct gl_list_implementation gl_linkedhash_list_implementation =
   {
-    gl_linked_nx_create_empty,
-    gl_linked_nx_create,
+    gl_linked_create_empty,
+    gl_linked_create,
     gl_linked_size,
     gl_linked_node_value,
-    gl_linked_node_nx_set_value,
+    gl_linked_node_set_value,
     gl_linked_next_node,
     gl_linked_previous_node,
     gl_linked_get_at,
-    gl_linked_nx_set_at,
+    gl_linked_set_at,
     gl_linked_search_from_to,
     gl_linked_indexof_from_to,
-    gl_linked_nx_add_first,
-    gl_linked_nx_add_last,
-    gl_linked_nx_add_before,
-    gl_linked_nx_add_after,
-    gl_linked_nx_add_at,
+    gl_linked_add_first,
+    gl_linked_add_last,
+    gl_linked_add_before,
+    gl_linked_add_after,
+    gl_linked_add_at,
     gl_linked_remove_node,
     gl_linked_remove_at,
     gl_linked_remove,
@@ -119,6 +118,6 @@ const struct gl_list_implementation gl_linkedhash_list_implementation =
     gl_linked_sortedlist_search_from_to,
     gl_linked_sortedlist_indexof,
     gl_linked_sortedlist_indexof_from_to,
-    gl_linked_sortedlist_nx_add,
+    gl_linked_sortedlist_add,
     gl_linked_sortedlist_remove
   };

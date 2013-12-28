@@ -1,5 +1,5 @@
 /* Test of sigaction() function.
-   Copyright (C) 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -20,25 +20,27 @@
 
 #include <signal.h>
 
-#include "signature.h"
-SIGNATURE_CHECK (sigaction, int, (int, struct sigaction const *,
-                                  struct sigaction *));
+#include <stdio.h>
+#include <stdlib.h>
 
-#include <stddef.h>
-
-#include "macros.h"
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          signal (SIGABRT, SIG_DFL);					     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
 
 #ifndef SA_NOCLDSTOP
 # define SA_NOCLDSTOP 0
 #endif
 #ifndef SA_ONSTACK
 # define SA_ONSTACK 0
-#endif
-#ifndef SA_RESETHAND
-# define SA_RESETHAND 0
-#endif
-#ifndef SA_RESTART
-# define SA_RESTART 0
 #endif
 #ifndef SA_SIGINFO
 # define SA_SIGINFO 0
@@ -51,7 +53,7 @@ SIGNATURE_CHECK (sigaction, int, (int, struct sigaction const *,
    provide other flags as extensions, such as SA_RESTORER, that we
    must ignore in this test.  */
 #define MASK_SA_FLAGS (SA_NOCLDSTOP | SA_ONSTACK | SA_RESETHAND | SA_RESTART \
-                       | SA_SIGINFO | SA_NOCLDWAIT | SA_NODEFER)
+		       | SA_SIGINFO | SA_NOCLDWAIT | SA_NODEFER)
 
 /* This test is unsafe in the presence of an asynchronous SIGABRT,
    because we install a signal-handler that is intentionally not
@@ -75,9 +77,9 @@ handler (int sig)
       break;
     case 1:
       /* This assertion fails on glibc-2.3.6 systems with LinuxThreads,
-         when this program is linked with -lpthread, due to the sigaction()
-         override in libpthread.so.  */
-#if !(defined __GLIBC__ || defined __UCLIBC__)
+	 when this program is linked with -lpthread, due to the sigaction()
+	 override in libpthread.so.  */
+#if !defined __GLIBC__
       ASSERT (sa.sa_handler == SIG_DFL);
 #endif
       break;
@@ -87,7 +89,7 @@ handler (int sig)
 }
 
 int
-main (void)
+main (int argc, char *argv[])
 {
   struct sigaction sa;
   struct sigaction old_sa;
@@ -107,7 +109,7 @@ main (void)
   sa.sa_handler = SIG_DFL;
   ASSERT (sigaction (SIGABRT, &sa, &old_sa) == 0);
   ASSERT ((old_sa.sa_flags & SA_SIGINFO) == 0);
-#if !(defined __GLIBC__ || defined __UCLIBC__) /* see above */
+#if !defined __GLIBC__ /* see above */
   ASSERT (old_sa.sa_handler == SIG_DFL);
 #endif
 

@@ -1,5 +1,5 @@
 /* Test of isnanl() substitute.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2009 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -18,11 +18,38 @@
 
 #include <float.h>
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "minus-zero.h"
-#include "infinity.h"
 #include "nan.h"
-#include "macros.h"
+
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
+
+/* On HP-UX 10.20, negating 0.0L does not yield -0.0L.
+   So we use minus_zero instead.
+   IRIX cc can't put -0.0L into .data, but can compute at runtime.
+   Note that the expression -LDBL_MIN * LDBL_MIN does not work on other
+   platforms, such as when cross-compiling to PowerPC on MacOS X 10.5.  */
+#if defined __hpux || defined __sgi
+static long double
+compute_minus_zero (void)
+{
+  return -LDBL_MIN * LDBL_MIN;
+}
+# define minus_zero compute_minus_zero ()
+#else
+long double minus_zero = -0.0L;
+#endif
 
 int
 main ()
@@ -40,10 +67,10 @@ main ()
   ASSERT (!isnanl (-2.718e30L));
   ASSERT (!isnanl (-2.718e-30L));
   ASSERT (!isnanl (0.0L));
-  ASSERT (!isnanl (minus_zerol));
+  ASSERT (!isnanl (minus_zero));
   /* Infinite values.  */
-  ASSERT (!isnanl (Infinityl ()));
-  ASSERT (!isnanl (- Infinityl ()));
+  ASSERT (!isnanl (1.0L / 0.0L));
+  ASSERT (!isnanl (-1.0L / 0.0L));
   /* Quiet NaN.  */
   ASSERT (isnanl (NaNl ()));
 
@@ -65,7 +92,7 @@ main ()
   }
 #endif
 
-#if ((defined __ia64 && LDBL_MANT_DIG == 64) || (defined __x86_64__ || defined __amd64__) || (defined __i386 || defined __i386__ || defined _I386 || defined _M_IX86 || defined _X86_)) && !HAVE_SAME_LONG_DOUBLE_AS_DOUBLE
+#if ((defined __ia64 && LDBL_MANT_DIG == 64) || (defined __x86_64__ || defined __amd64__) || (defined __i386 || defined __i386__ || defined _I386 || defined _M_IX86 || defined _X86_))
 /* Representation of an 80-bit 'long double' as an initializer for a sequence
    of 'unsigned int' words.  */
 # ifdef WORDS_BIGENDIAN

@@ -1,5 +1,5 @@
 /* Test of isnand() substitute.
-   Copyright (C) 2007-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007-2008 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -17,11 +17,26 @@
 /* Written by Bruno Haible <bruno@clisp.org>, 2007.  */
 
 #include <limits.h>
+#include <stdio.h>
+#include <stdlib.h>
 
-#include "minus-zero.h"
-#include "infinity.h"
 #include "nan.h"
-#include "macros.h"
+
+#define ASSERT(expr) \
+  do									     \
+    {									     \
+      if (!(expr))							     \
+        {								     \
+          fprintf (stderr, "%s:%d: assertion failed\n", __FILE__, __LINE__); \
+          fflush (stderr);						     \
+          abort ();							     \
+        }								     \
+    }									     \
+  while (0)
+
+/* HP cc on HP-UX 10.20 has a bug with the constant expression -0.0.
+   So we use -zero instead.  */
+double zero = 0.0;
 
 int
 main ()
@@ -34,10 +49,10 @@ main ()
   ASSERT (!isnand (-2.718e30));
   ASSERT (!isnand (-2.718e-30));
   ASSERT (!isnand (0.0));
-  ASSERT (!isnand (minus_zerod));
+  ASSERT (!isnand (-zero));
   /* Infinite values.  */
-  ASSERT (!isnand (Infinityd ()));
-  ASSERT (!isnand (- Infinityd ()));
+  ASSERT (!isnand (1.0 / 0.0));
+  ASSERT (!isnand (-1.0 / 0.0));
   /* Quiet NaN.  */
   ASSERT (isnand (NaNd ()));
 #if defined DBL_EXPBIT0_WORD && defined DBL_EXPBIT0_BIT

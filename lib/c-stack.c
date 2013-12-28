@@ -1,6 +1,7 @@
 /* Stack overflow handling.
 
-   Copyright (C) 2002, 2004, 2006, 2008-2013 Free Software Foundation, Inc.
+   Copyright (C) 2002, 2004, 2006, 2008, 2009 Free Software
+   Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -45,18 +46,15 @@
 #define _(msgid) gettext (msgid)
 
 #include <errno.h>
+#ifndef ENOTSUP
+# define ENOTSUP EINVAL
+#endif
 
 #include <signal.h>
 #if ! HAVE_STACK_T && ! defined stack_t
 typedef struct sigaltstack stack_t;
 #endif
 #ifndef SIGSTKSZ
-# define SIGSTKSZ 16384
-#elif HAVE_LIBSIGSEGV && SIGSTKSZ < 16384
-/* libsigsegv 2.6 through 2.8 have a bug where some architectures use
-   more than the Linux default of an 8k alternate stack when deciding
-   if a fault was caused by stack overflow.  */
-# undef SIGSTKSZ
 # define SIGSTKSZ 16384
 #endif
 
@@ -77,12 +75,11 @@ typedef struct sigaltstack stack_t;
 
 #include "c-stack.h"
 #include "exitfail.h"
-#include "ignore-value.h"
 
 #if defined SA_ONSTACK && defined SA_SIGINFO
-# define SIGINFO_WORKS 1
+# define SIGACTION_WORKS 1
 #else
-# define SIGINFO_WORKS 0
+# define SIGACTION_WORKS 0
 # ifndef SA_ONSTACK
 #  define SA_ONSTACK 0
 # endif
@@ -104,22 +101,17 @@ static char const * volatile stack_overflow_message;
    appears to have been a stack overflow, or with a core dump
    otherwise.  This function is async-signal-safe.  */
 
-static _Noreturn void
+static void die (int) __attribute__ ((noreturn));
+static void
 die (int signo)
 {
   char const *message;
-#if !SIGINFO_WORKS && !HAVE_LIBSIGSEGV
-  /* We can't easily determine whether it is a stack overflow; so
-     assume that the rest of our program is perfect (!) and that
-     this segmentation violation is a stack overflow.  */
-  signo = 0;
-#endif /* !SIGINFO_WORKS && !HAVE_LIBSIGSEGV */
   segv_action (signo);
   message = signo ? program_error_message : stack_overflow_message;
-  ignore_value (write (STDERR_FILENO, program_name, strlen (program_name)));
-  ignore_value (write (STDERR_FILENO, ": ", 2));
-  ignore_value (write (STDERR_FILENO, message, strlen (message)));
-  ignore_value (write (STDERR_FILENO, "\n", 1));
+  write (STDERR_FILENO, program_name, strlen (program_name));
+  write (STDERR_FILENO, ": ", 2);
+  write (STDERR_FILENO, message, strlen (message));
+  write (STDERR_FILENO, "\n", 1);
   if (! signo)
     _exit (exit_failure);
   raise (signo);
@@ -161,7 +153,7 @@ static volatile int segv_handler_missing;
    overflow.  This function is async-signal-safe.  */
 
 static int segv_handler (void *address __attribute__ ((unused)),
-                         int serious)
+			 int serious)
 {
 # if DEBUG
   {
@@ -181,15 +173,17 @@ static int segv_handler (void *address __attribute__ ((unused)),
 /* Handle a segmentation violation that is likely to be a stack
    overflow and exit.  This function is async-signal-safe.  */
 
-static _Noreturn void
+static void overflow_handler (int, stackoverflow_context_t)
+  __attribute__ ((noreturn));
+static void
 overflow_handler (int emergency,
-                  stackoverflow_context_t context __attribute__ ((unused)))
+		  stackoverflow_context_t context __attribute__ ((unused)))
 {
 # if DEBUG
   {
     char buf[1024];
     sprintf (buf, "overflow_handler emergency=%d segv_handler_missing=%d\n",
-             emergency, segv_handler_missing);
+	     emergency, segv_handler_missing);
     write (STDERR_FILENO, buf, strlen (buf));
   }
 # endif
@@ -220,14 +214,29 @@ c_stack_action (void (*action) (int))
 
 #elif HAVE_SIGALTSTACK && HAVE_DECL_SIGALTSTACK && HAVE_STACK_OVERFLOW_HANDLING
 
-# if SIGINFO_WORKS
+/* Direction of the C runtime stack.  This function is
+   async-signal-safe.  */
+
+# if STACK_DIRECTION
+#  define find_stack_direction(ptr) STACK_DIRECTION
+# else
+static int
+find_stack_direction (char const *addr)
+{
+  char dummy;
+  return ! addr ? find_stack_direction (&dummy) : addr < &dummy ? 1 : -1;
+}
+# endif
+
+# if SIGACTION_WORKS
 
 /* Handle a segmentation violation and exit.  This function is
    async-signal-safe.  */
 
-static _Noreturn void
+static void segv_handler (int, siginfo_t *, void *) __attribute__((noreturn));
+static void
 segv_handler (int signo, siginfo_t *info,
-              void *context __attribute__ ((unused)))
+	      void *context __attribute__ ((unused)))
 {
   /* Clear SIGNO if it seems to have been a stack overflow.  */
 #  if ! HAVE_XSI_STACK_OVERFLOW_HEURISTIC
@@ -237,7 +246,7 @@ segv_handler (int signo, siginfo_t *info,
 
      Note that although both Linux and Solaris provide
      sigaltstack, SA_ONSTACK, and SA_SIGINFO, currently only
-     Solaris satisfies the XSI heuristic.  This is because
+     Solaris satisfies the XSI heueristic.  This is because
      Solaris populates uc_stack with the details of the
      interrupted stack, while Linux populates it with the details
      of the current stack.  */
@@ -246,24 +255,27 @@ segv_handler (int signo, siginfo_t *info,
   if (0 < info->si_code)
     {
       /* If the faulting address is within the stack, or within one
-         page of the stack, assume that it is a stack overflow.  */
+	 page of the stack end, assume that it is a stack
+	 overflow.  */
       ucontext_t const *user_context = context;
       char const *stack_base = user_context->uc_stack.ss_sp;
       size_t stack_size = user_context->uc_stack.ss_size;
       char const *faulting_address = info->si_addr;
+      size_t s = faulting_address - stack_base;
       size_t page_size = sysconf (_SC_PAGESIZE);
-      size_t s = faulting_address - stack_base + page_size;
-      if (s < stack_size + 2 * page_size)
-        signo = 0;
+      if (find_stack_direction (NULL) < 0)
+	s += page_size;
+      if (s < stack_size + page_size)
+	signo = 0;
 
 #   if DEBUG
       {
-        char buf[1024];
-        sprintf (buf,
-                 "segv_handler fault=%p base=%p size=%lx page=%lx signo=%d\n",
-                 faulting_address, stack_base, (unsigned long) stack_size,
-                 (unsigned long) page_size, signo);
-        write (STDERR_FILENO, buf, strlen (buf));
+	char buf[1024];
+	sprintf (buf,
+		 "segv_handler fault=%p base=%p size=%lx page=%lx signo=%d\n",
+		 faulting_address, stack_base, (unsigned long) stack_size,
+		 (unsigned long) page_size, signo);
+	write (STDERR_FILENO, buf, strlen (buf));
       }
 #   endif
     }
@@ -299,7 +311,7 @@ c_stack_action (void (*action) (int))
 
   sigemptyset (&act.sa_mask);
 
-# if SIGINFO_WORKS
+# if SIGACTION_WORKS
   /* POSIX 1003.1-2001 says SA_RESETHAND implies SA_NODEFER, but
      this is not true on Solaris 8 at least.  It doesn't hurt to use
      SA_NODEFER here, so leave it in.  */
@@ -318,7 +330,7 @@ c_stack_action (void (*action) (int))
 }
 
 #else /* ! ((HAVE_SIGALTSTACK && HAVE_DECL_SIGALTSTACK
-             && HAVE_STACK_OVERFLOW_HANDLING) || HAVE_LIBSIGSEGV) */
+	     && HAVE_STACK_OVERFLOW_HANDLING) || HAVE_LIBSIGSEGV) */
 
 int
 c_stack_action (void (*action) (int)  __attribute__ ((unused)))

@@ -1,6 +1,6 @@
 /* Close standard input, rewinding seekable stdin if necessary.
 
-   Copyright (C) 2007, 2009-2013 Free Software Foundation, Inc.
+   Copyright (C) 2007 Free Software Foundation, Inc.
 
    This program is free software: you can redistribute it and/or modify
    it under the terms of the GNU General Public License as published by
@@ -55,7 +55,7 @@ close_stdin_set_file_name (const char *file)
    For example, POSIX requires that these two commands behave alike:
 
      (sed -ne 1q; cat) < file
-     tail -n +2 file
+     tail -n 1 file
 
    Since close_stdin is commonly registered via 'atexit', POSIX
    and the C standard both say that it should not call 'exit',
@@ -72,7 +72,7 @@ close_stdin_set_file_name (const char *file)
    the removal of these files.
 
    It's important to detect such failures and exit nonzero because many
-   tools (most notably 'make' and other build-management systems) depend
+   tools (most notably `make' and other build-management systems) depend
    on being able to detect failure in other tools via their exit status.  */
 
 void
@@ -82,27 +82,26 @@ close_stdin (void)
 
   /* There is no need to flush stdin if we can determine quickly that stdin's
      input buffer is empty; in this case we know that if stdin is seekable,
-     (fseeko (stdin, 0, SEEK_CUR), ftello (stdin))
-     == lseek (0, 0, SEEK_CUR).  */
+     fseeko (stdin, 0, SEEK_CUR) == lseek (0, 0, SEEK_CUR).  */
   if (freadahead (stdin) > 0)
     {
       /* Only attempt flush if stdin is seekable, as fflush is entitled to
-         fail on non-seekable streams.  */
+	 fail on non-seekable streams.  */
       if (fseeko (stdin, 0, SEEK_CUR) == 0 && fflush (stdin) != 0)
-        fail = true;
+	fail = true;
     }
   if (close_stream (stdin) != 0)
     fail = true;
   if (fail)
     {
       /* Report failure, but defer exit until after closing stdout,
-         since the failure report should still be flushed.  */
+	 since the failure report should still be flushed.  */
       char const *close_error = _("error closing file");
       if (file_name)
-        error (0, errno, "%s: %s", quotearg_colon (file_name),
-               close_error);
+	error (0, errno, "%s: %s", quotearg_colon (file_name),
+	       close_error);
       else
-        error (0, errno, "%s", close_error);
+	error (0, errno, "%s", close_error);
     }
 
   close_stdout ();

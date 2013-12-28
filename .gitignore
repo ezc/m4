@@ -1,0 +1,6 @@
+*.o
+build*
+checks/*
+test/*
+tests/*
+src/.deps/

@@ -1,4 +1,4 @@
-dnl @ ../doc/m4.texi:2313: Origin of test
+dnl @ ../doc/m4.texinfo:2295: Origin of test
 dnl @ expected status: 0
 dnl @ extra options: 
 dnl @ Copyright (C) 2006, 2007, 2008, 2009 Free Software
@@ -7,15 +7,19 @@ dnl @ This file is free software; the Free Software Foundation
 dnl @ gives unlimited permission to copy and/or distribute it
 dnl @ with or without modifications, as long as this notice
 dnl @ is preserved.
-define(`foo', a'a)
+define(`a', `A')define(`AA', `b')
 dnl @result{}
-define(`a', `A')
+traceon(`defn', `define')
 dnl @result{}
-define(`echo', `$@')
+defn(`a', `divnum', `a')
+dnl @error{}m4:stdin:3: Warning: cannot concatenate builtin `divnum'
+dnl @error{}m4trace: -1- defn(`a', `divnum', `a') -> ``A'`A''
+dnl @result{}AA
+define(`mydivnum', defn(`divnum', `divnum'))mydivnum
+dnl @error{}m4:stdin:4: Warning: cannot concatenate builtin `divnum'
+dnl @error{}m4:stdin:4: Warning: cannot concatenate builtin `divnum'
+dnl @error{}m4trace: -2- defn(`divnum', `divnum')
+dnl @error{}m4trace: -1- define(`mydivnum', `')
 dnl @result{}
-foo
-dnl @result{}A'A
-defn(`foo')
-dnl @result{}aA'
-echo(foo)
-dnl @result{}AA'
+traceoff(`defn', `define')
+dnl @result{}
